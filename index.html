@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MIRA · Health Prediction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+        <div>
+          <span class="logo-title">MIRA</span>
+          <span class="logo-sub">Medical Intelligence &amp; Risk Assessment</span>
+        </div>
+      </div>
+      <button class="btn-add" id="btnAdd">
+        <i class="fa-solid fa-plus"></i> Add Patient
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Stats Bar ── -->
+  <section class="stats-bar">
+    <div class="stat-card">
+      <span class="stat-num" id="statTotal">0</span>
+      <span class="stat-label">Total Patients</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statRisk">0</span>
+      <span class="stat-label">At-Risk Flags</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statNormal">0</span>
+      <span class="stat-label">Normal Results</span>
+    </div>
+  </section>
+
+  <!-- ── Search ── -->
+  <div class="search-wrap">
+    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+    <input type="text" id="searchInput" class="search-input" placeholder="Search by name or email…" />
+  </div>
+
+  <!-- ── Table ── -->
+  <main class="table-wrap">
+    <table class="patient-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Patient</th>
+          <th>DOB</th>
+          <th>Glucose <small>mg/dL</small></th>
+          <th>Haemoglobin <small>g/dL</small></th>
+          <th>Cholesterol <small>mg/dL</small></th>
+          <th>AI Health Remarks</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="patientBody">
+        <tr id="emptyRow">
+          <td colspan="8" class="empty-cell">
+            <i class="fa-regular fa-folder-open"></i>
+            <p>No patient records yet. Add your first patient.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <!-- ── Modal ── -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Add Patient</h2>
+        <button class="modal-close" id="modalClose"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="formError" class="form-error hidden"></div>
+
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Full Name</label>
+            <input type="text" id="fName" placeholder="e.g. Priya Sharma" />
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" id="fDob" />
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" id="fEmail" placeholder="patient@example.com" />
+          </div>
+          <div class="form-group">
+            <label>Glucose (mg/dL)</label>
+            <input type="number" id="fGlucose" placeholder="70 – 99 normal" step="0.1" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Haemoglobin (g/dL)</label>
+            <input type="number" id="fHaemo" placeholder="12 – 17.5 normal" step="0.1" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Cholesterol (mg/dL)</label>
+            <input type="number" id="fChol" placeholder="&lt; 200 desirable" step="0.1" min="0" />
+          </div>
+        </div>
+
+        <p class="ai-note"><i class="fa-solid fa-robot"></i> AI health remarks will be generated automatically on save.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" id="btnCancel">Cancel</button>
+        <button class="btn-save" id="btnSave">
+          <span id="btnSaveText">Save &amp; Analyse</span>
+          <span id="btnSaveLoader" class="hidden"><i class="fa-solid fa-spinner fa-spin"></i> Analysing…</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Delete Confirm ── -->
+  <div class="modal-backdrop" id="deleteBackdrop">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title">Confirm Delete</h2>
+        <button class="modal-close" id="deleteClose"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary)">Are you sure you want to delete <strong id="deletePatientName"></strong>'s record? This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="deleteCancelBtn">Cancel</button>
+        <button class="btn-delete-confirm" id="deleteConfirmBtn">Delete Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Remarks Viewer ── -->
+  <div class="modal-backdrop" id="remarksBackdrop">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2 class="modal-title"><i class="fa-solid fa-robot"></i> AI Health Analysis</h2>
+        <button class="modal-close" id="remarksClose"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="remarks-full" id="remarksFull"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div class="toast" id="toast"></div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
